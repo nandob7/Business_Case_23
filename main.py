@@ -12,7 +12,7 @@ import pandas as pd
 import shap
 
 random_state = 42
-sample_size = 1000
+sample_size = 1000 # out of 20640
 
 # Load the california housing dataset and shuffle and sample down to 1000 instances
 housing = fetch_california_housing()
