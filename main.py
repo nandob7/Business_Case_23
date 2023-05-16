@@ -1,21 +1,23 @@
 # Import necessary libraries
-from sklearn.datasets import fetch_california_housing
+from sklearn.datasets import load_boston
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 import lime
+import lime.lime_tabular
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
+import xgboost as xgb
 
 random_state = 42
-sample_size = 1000 # out of 20640
+sample_size = 506
 
-# Load the california housing dataset and shuffle and sample down to 1000 instances
-housing = fetch_california_housing()
+# Load the Boston housing dataset and shuffle and sample down to 506 instances
+housing = load_boston()
 shuffled_housing = shuffle(housing.data, housing.target, random_state=random_state, n_samples=sample_size)
 
 X = pd.DataFrame(shuffled_housing[0], columns=housing.feature_names)
@@ -24,41 +26,57 @@ y = pd.DataFrame(shuffled_housing[1], columns=["MEDV"])
 # Split the dataset into train and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
 
-# Train a model
-model = RandomForestRegressor(n_estimators=100, random_state=random_state)
-model.fit(X_train, y_train.values.ravel())
+# Define the models
+models = [
+    ("RandomForestRegressor", RandomForestRegressor(n_estimators=100, random_state=random_state)),
+    ("XGBRegressor", xgb.XGBRegressor(n_estimators=100, random_state=random_state))
+]
 
-# Evaluate the model
-y_pred = model.predict(X_test)
-mse = mean_squared_error(y_test, y_pred)
-print("Mean Squared Error: ", mse)
+for model_name, model in models:
+    # Train and evaluate each model
+    model.fit(X_train, y_train.values.ravel())
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print(f"{model_name} - MSE: {mse}, MAE: {mae}, R^2: {r2}")
 
-# Compute permutation feature importance
-r = permutation_importance(model, X_test, y_test,
-                           n_repeats=30,
-                           random_state=random_state)
-for i in r.importances_mean.argsort()[::-1]:
-    print(f"{housing.feature_names[i]:<10}: "
-          f"{r.importances_mean[i]:.3f}"
-          f" +/- {r.importances_std[i]:.3f}")
+    # Compute and print permutation feature importance
+    r = permutation_importance(model, X_test, y_test, n_repeats=30, random_state=random_state)
+    x = []
+    y = []
+    error = []
+    for i in r.importances_mean.argsort()[::-1]:
+        y.append(housing.feature_names[i])
+        x.append(r.importances_mean[i])
+        error.append(r.importances_std[i])
 
-# Compute SHAP values
-explainer = shap.TreeExplainer(model)
-shap_values = explainer.shap_values(X_train)
-shap.summary_plot(shap_values, X_train, plot_type="bar")
-plt.show()
+    # Plotting the bar graph
+    plt.barh(y, x, align='center', alpha=0.5)
+    plt.errorbar(x, y, xerr=error, linestyle='None', color='black')
 
-# Compute LIME explanations
-explainer = lime.lime_tabular.LimeTabularExplainer(X_train.values,
-                                                   feature_names=housing.feature_names,
-                                                   class_names=['MEDV'],
-                                                   verbose=True,
-                                                   mode='regression')
-i = np.random.randint(0, X_test.shape[0])
-exp = explainer.explain_instance(X_test.values[i], model.predict, num_features=5)
+    # Customizing the plot
+    plt.gca().invert_yaxis()
+    plt.xlabel('Mean feature importance value')
+    plt.title(f'{model_name}: PFI + Std Dev error bar')
+    plt.show()
 
-# print out the explanation in a more readable format
-print('Intercept:', exp.intercept[0])
-for feature in exp.as_list():
-    print('Feature:', feature[0])
-    print('Weight:', feature[1])
+    # Compute SHAP values and plot summary
+    explainer = shap.Explainer(model, X_train)
+    shap_values = explainer(X_train)
+    shap.plots.bar(shap_values, show=False)
+
+    plt.title(f'SHAP Summary for {model_name}')
+    plt.show()
+
+    # Compute LIME explanations for a random instance in the test set
+    explainer = lime.lime_tabular.LimeTabularExplainer(X_train.values, feature_names=housing.feature_names,
+                                                       class_names=['MEDV'], mode='regression')
+    i = np.random.randint(0, X_test.shape[0])
+    exp = explainer.explain_instance(X_test.values[i], model.predict, num_features=5)
+
+    # Print out the explanation in a more readable format
+    print('Intercept:', exp.intercept[0])
+    for feature in exp.as_list():
+        print('Feature:', feature[0])
+        print('Weight:', feature[1])
