@@ -14,14 +14,12 @@ import shap
 import xgboost as xgb
 
 random_state = 42
-sample_size = 506
 
-# Load the Boston housing dataset and shuffle and sample down to 506 instances
+# Load boston housing dataset
 housing = load_boston()
-shuffled_housing = shuffle(housing.data, housing.target, random_state=random_state, n_samples=sample_size)
 
-X = pd.DataFrame(shuffled_housing[0], columns=housing.feature_names)
-y = pd.DataFrame(shuffled_housing[1], columns=["MEDV"])
+X = pd.DataFrame(housing.data, columns=housing.feature_names)
+y = pd.DataFrame(housing.target, columns=["MEDV"])
 
 # Split the dataset into train and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
