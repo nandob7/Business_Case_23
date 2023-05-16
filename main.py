@@ -4,8 +4,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.utils import shuffle
-import lime
 import lime.lime_tabular
 import matplotlib.pyplot as plt
 import numpy as np
