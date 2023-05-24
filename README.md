@@ -1,6 +1,6 @@
 # Business_Case_23
 
-# AI Explainability Research - Kernel Shapley and LIME Demo
+# AI Explainability Research - Shapley and LIME Demo
 This repository contains Python code and associated data for demonstrating the use of Kernel Shapley and LIME methods in the field of AI explainability. The code demonstrates the application of these methods on a small dataset - the Boston Housing dataset.
 
 **Description**
