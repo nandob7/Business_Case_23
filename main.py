@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import shap
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import GridSearchCV
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
 import time
@@ -83,19 +82,12 @@ print()
 print(classification_report(y_test, y_test_repo))
 ConfusionMatrixDisplay(confusion_matrix(y_test, y_test_repo)).plot()
 plt.show()
-#
-# param_grid = dict(scale_pos_weight=weights)
-#
-# grid = GridSearchCV(XGBClassifier(), param_grid=param_grid, cv=cv, scoring='recall')
-# grid.fit(X_train, y_train)
-# print(f"best parameters: {grid.best_params_}")
-# print(f"best scores: {grid.best_score_}")
 
 # Compute SHAP values and plot summary
-samples = 100
+samples = 5000
 X_shap = shap.sample(X_train, samples, random_state=random_state)
-background = shap.maskers.Independent(X_train)
-explainer = shap.KernelExplainer(model.predict, X_shap, masker=background)
+mask = shap.maskers.Independent(X_train)
+explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
 
 shap_values = explainer.shap_values(X_shap)
 
@@ -103,16 +95,11 @@ explanation = shap.Explanation(shap_values, data=X_shap,
                                base_values=explainer.expected_value,
                                feature_names=X_train.columns)
 
-plt.figure(figsize=(10, 6))
 shap.plots.beeswarm(explanation, show=False)
 plt.title(f'SHAP Beeswarm Plot for {samples} samples')
+plt.tight_layout()
 plt.savefig('beeswarm_SHAP.png')
 plt.show()
-
-# shap_values = explainer(X_train)
-# shap.plots.bar(shap_values, show=False)
-# plt.title(f'SHAP Summary for XGBoost Classifier')
-# plt.show()
 
 # Calculate the elapsed time
 elapsed_time = time.time() - start_time
