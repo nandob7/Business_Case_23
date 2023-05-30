@@ -1,17 +1,14 @@
 import numpy as np
 import pandas as pd
-import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
-import plotly.graph_objects as go
+import shap
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
 from xgboost import XGBClassifier
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
-from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report, \
-    precision_recall_curve, PrecisionRecallDisplay
-from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
+import time
 
 sns.set_style('whitegrid')
 sns.set_palette('Set2')
@@ -20,6 +17,10 @@ pd.options.plotting.backend = 'plotly'
 # ignore warnings
 import warnings
 
+# Record the starting time
+start_time = time.time()
+
+random_state = 42
 warnings.filterwarnings('ignore')
 
 df = pd.read_csv('diabetes_prediction_dataset.csv')
@@ -67,37 +68,54 @@ y = df.diabetes
 X = pd.get_dummies(X, columns=['smoking_history', 'gender'], drop_first=True)
 X = X.drop(['gender_Other', 'smoking_history_not current', 'smoking_history_never', 'smoking_history_ever'], axis=1)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
 
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
-from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report, \
-    precision_recall_curve, PrecisionRecallDisplay
-from sklearn.pipeline import Pipeline
-
-model = XGBClassifier(random_state=42)
+model = XGBClassifier(n_estimators=100, random_state=random_state)
 model.fit(X_train, y_train)
 cv = 5
-weights = [2, 3, 25, 50, 100]
+weights = [2, 3, 25, 50, 100, 500]
 
+y_train_repo = model.predict(X_train)
+y_test_repo = model.predict(X_test)
+print(f"the accuracy on train set {accuracy_score(y_train, y_train_repo)}")
+print(f"the accuracy on test set {accuracy_score(y_test, y_test_repo)}")
+print()
+print(classification_report(y_test, y_test_repo))
+ConfusionMatrixDisplay(confusion_matrix(y_test, y_test_repo)).plot()
+plt.show()
+#
+# param_grid = dict(scale_pos_weight=weights)
+#
+# grid = GridSearchCV(XGBClassifier(), param_grid=param_grid, cv=cv, scoring='recall')
+# grid.fit(X_train, y_train)
+# print(f"best parameters: {grid.best_params_}")
+# print(f"best scores: {grid.best_score_}")
 
-def report_model(model):
-    y_train_repo = model.predict(X_train)
-    y_test_repo = model.predict(X_test)
-    print(f"the accuracy on train set {accuracy_score(y_train, y_train_repo)}")
-    print(f"the accuracy on test set {accuracy_score(y_test, y_test_repo)}")
-    print()
-    print(classification_report(y_test, y_test_repo))
-    ConfusionMatrixDisplay(confusion_matrix(y_test, y_test_repo)).plot()
-    plt.show()
+# Compute SHAP values and plot summary
+samples = 100
+X_shap = shap.sample(X_train, samples, random_state=random_state)
+background = shap.maskers.Independent(X_train)
+explainer = shap.KernelExplainer(model.predict, X_shap, masker=background)
 
+shap_values = explainer.shap_values(X_shap)
 
-report_model(model)
-weights = [1, 2, 3, 5, 25, 50, 100, 200, 500, 1000, 5000, 10000, 25000, 50000, 100000]
-param_grid = dict(scale_pos_weight=weights)
+explanation = shap.Explanation(shap_values, data=X_shap,
+                               base_values=explainer.expected_value,
+                               feature_names=X_train.columns)
 
-grid = GridSearchCV(XGBClassifier(), param_grid=param_grid, cv=cv, scoring='recall')
-grid.fit(X_train, y_train)
-print(f"best parameters: {grid.best_params_}")
-print(f"best scores: {grid.best_score_}")
+plt.figure(figsize=(10, 6))
+shap.plots.beeswarm(explanation, show=False)
+plt.title(f'SHAP Beeswarm Plot for {samples} samples')
+plt.savefig('beeswarm_SHAP.png')
+plt.show()
+
+# shap_values = explainer(X_train)
+# shap.plots.bar(shap_values, show=False)
+# plt.title(f'SHAP Summary for XGBoost Classifier')
+# plt.show()
+
+# Calculate the elapsed time
+elapsed_time = time.time() - start_time
+
+# Print the runtime in seconds
+print(f"Runtime: {elapsed_time:.2f}s")

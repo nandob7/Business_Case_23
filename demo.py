@@ -78,8 +78,8 @@ for model_name, model in models:
         print('Weight:', feature[1])
 
     # Plot LIME feature importance
-        features, weights = zip(*exp.as_list())
-        plt.barh(features, weights)
-        plt.xlabel("LIME Weight")
-        plt.title(f"LIME Feature Importance for {model_name}")
-        plt.show()
+    features, weights = zip(*exp.as_list())
+    plt.barh(features, weights)
+    plt.xlabel("LIME Weight")
+    plt.title(f"LIME Feature Importance for {model_name}")
+    plt.show()
