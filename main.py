@@ -49,6 +49,7 @@ df = df[(df['bmi'] >= lower_bound) & (df['bmi'] <= upper_bound)]
 # plot the boxplot for BMI
 sns.boxplot(df['bmi'])
 plt.title('Box plot of BMI (without outliers)')
+plt.savefig('boxplot_XGBC.png')
 plt.show()
 
 df['gender'] = df['gender'].astype('category')
@@ -82,6 +83,7 @@ print(f"the accuracy on test set {accuracy_score(y_test, y_test_repo)}")
 print()
 print(classification_report(y_test, y_test_repo))
 ConfusionMatrixDisplay(confusion_matrix(y_test, y_test_repo)).plot()
+plt.savefig('confmatrix_XGBC.png')
 plt.show()
 
 # Compute SHAP values and plot summary
@@ -102,7 +104,7 @@ plt.savefig('beeswarm_SHAP.png')
 plt.show()
 
 shap.decision_plot(explainer.expected_value, shap_values,
-                   feature_names=list(X_train.columns), show=False)
+                   feature_names=list(X_train.columns), xlim=(-0.05, 1), show=False)
 plt.title(f'SHAP Decision Plot for {samples} instances')
 plt.tight_layout()
 plt.savefig('dec_SHAP.png')
@@ -110,6 +112,7 @@ plt.show()
 
 shap.plots.bar(explanation, show=False)
 plt.title(f'SHAP Bar Plot for {samples} instances')
+plt.tight_layout()
 plt.savefig('bar_SHAP.png')
 plt.show()
 
