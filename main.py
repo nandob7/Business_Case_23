@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -9,7 +11,6 @@ from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
 import time
 
-sns.set_style('whitegrid')
 sns.set_palette('Set2')
 pd.options.plotting.backend = 'plotly'
 
@@ -46,9 +47,9 @@ upper_bound = Q3 + 1.5 * IQR
 df = df[(df['bmi'] >= lower_bound) & (df['bmi'] <= upper_bound)]
 
 # plot the boxplot for BMI
-fig = px.box(df, y='bmi')
-fig.update_layout(title='Box plot of BMI (without outliers)')
-fig.show()
+sns.boxplot(df['bmi'])
+plt.title('Box plot of BMI (without outliers)')
+plt.show()
 
 df['gender'] = df['gender'].astype('category')
 df['smoking_history'] = df['smoking_history'].astype('category')
@@ -84,21 +85,32 @@ ConfusionMatrixDisplay(confusion_matrix(y_test, y_test_repo)).plot()
 plt.show()
 
 # Compute SHAP values and plot summary
-samples = 5000
+samples = 1000
 X_shap = shap.sample(X_train, samples, random_state=random_state)
-mask = shap.maskers.Independent(X_train)
+mask = shap.maskers.Independent(X_train, max_samples=1000)
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
 
 shap_values = explainer.shap_values(X_shap)
 
 explanation = shap.Explanation(shap_values, data=X_shap,
-                               base_values=explainer.expected_value,
                                feature_names=X_train.columns)
 
 shap.plots.beeswarm(explanation, show=False)
-plt.title(f'SHAP Beeswarm Plot for {samples} samples')
+plt.title(f'SHAP Beeswarm Plot for {samples} instances')
 plt.tight_layout()
 plt.savefig('beeswarm_SHAP.png')
+plt.show()
+
+shap.decision_plot(explainer.expected_value, shap_values,
+                   feature_names=list(X_train.columns), show=False)
+plt.title(f'SHAP Decision Plot for {samples} instances')
+plt.tight_layout()
+plt.savefig('dec_SHAP.png')
+plt.show()
+
+shap.plots.bar(explanation, show=False)
+plt.title(f'SHAP Bar Plot for {samples} instances')
+plt.savefig('bar_SHAP.png')
 plt.show()
 
 # Calculate the elapsed time
