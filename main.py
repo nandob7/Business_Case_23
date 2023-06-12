@@ -1,10 +1,7 @@
-import random
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotly.express as px
 import shap
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
@@ -69,6 +66,19 @@ y = df.diabetes
 X = pd.get_dummies(X, columns=['smoking_history', 'gender'], drop_first=True)
 X = X.drop(['gender_Other', 'smoking_history_not current', 'smoking_history_never', 'smoking_history_ever'], axis=1)
 
+# Correlation Heatmap
+corr = pd.concat([X, y], axis=1).corr()
+
+# Create a mask to hide the upper triangle of the heatmap
+mask = np.zeros_like(corr)
+mask[np.triu_indices_from(mask)] = True
+
+sns.heatmap(corr, annot=True, mask=mask, fmt='.2f')
+plt.title(f'Correlation Heatmap')
+plt.tight_layout()
+plt.savefig("heatmap.png")
+plt.show()
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
 
 model = XGBClassifier(n_estimators=100, random_state=random_state)
@@ -87,7 +97,7 @@ plt.savefig('confmatrix_XGBC.png')
 plt.show()
 
 # Compute SHAP values and plot summary
-samples = 1000
+samples = 100
 X_shap = shap.sample(X_train, samples, random_state=random_state)
 mask = shap.maskers.Independent(X_train, max_samples=1000)
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
@@ -100,20 +110,20 @@ explanation = shap.Explanation(shap_values, data=X_shap,
 shap.plots.beeswarm(explanation, show=False)
 plt.title(f'SHAP Beeswarm Plot for {samples} instances')
 plt.tight_layout()
-plt.savefig('beeswarm_SHAP.png')
+# plt.savefig('beeswarm_SHAP.png')
 plt.show()
 
 shap.decision_plot(explainer.expected_value, shap_values,
                    feature_names=list(X_train.columns), xlim=(-0.05, 1), show=False)
 plt.title(f'SHAP Decision Plot for {samples} instances')
 plt.tight_layout()
-plt.savefig('dec_SHAP.png')
+# plt.savefig('dec_SHAP.png')
 plt.show()
 
 shap.plots.bar(explanation, show=False)
 plt.title(f'SHAP Bar Plot for {samples} instances')
 plt.tight_layout()
-plt.savefig('bar_SHAP.png')
+# plt.savefig('bar_SHAP.png')
 plt.show()
 
 # Calculate the elapsed time
