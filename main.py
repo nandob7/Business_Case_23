@@ -81,6 +81,40 @@ plt.show()
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
 
+class_count_0, class_count_1 = y_train.value_counts()
+y_train.value_counts().plot(kind='bar', title='count (target)')
+plt.show()
+
+# Get the indices of the instances of each class in y_train
+indices_majority = y_train[y_train == 0].index
+indices_minority = y_train[y_train == 1].index
+
+# Calculate the desired number of samples in the majority class
+desired_majority_count = 4 * len(indices_minority)
+
+# Randomly undersample the majority class to get the desired number of samples
+undersampled_indices = np.random.choice(indices_majority, size=desired_majority_count, replace=False)
+
+# Combine the undersampled majority indices and the minority indices
+balanced_indices = np.concatenate([undersampled_indices, indices_minority])
+
+# Use the balanced_indices to get the balanced X_train and y_train
+X_train = X_train.loc[balanced_indices]
+y_train = y_train.loc[balanced_indices]
+
+# Correlation Heatmap
+corr = pd.concat([X_train, y_train], axis=1).corr()
+
+# Create a mask to hide the upper triangle of the heatmap
+mask = np.zeros_like(corr)
+mask[np.triu_indices_from(mask)] = True
+
+sns.heatmap(corr, annot=True, mask=mask, fmt='.2f')
+plt.title(f'Training Correlation Heatmap')
+plt.tight_layout()
+plt.savefig("heatmap_train.png")
+plt.show()
+
 model = XGBClassifier(n_estimators=100, random_state=random_state)
 model.fit(X_train, y_train)
 cv = 5
@@ -97,7 +131,7 @@ plt.savefig('confmatrix_XGBC.png')
 plt.show()
 
 # Compute SHAP values and plot summary
-samples = 100
+samples = 2000
 X_shap = shap.sample(X_train, samples, random_state=random_state)
 mask = shap.maskers.Independent(X_train, max_samples=1000)
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
@@ -110,20 +144,20 @@ explanation = shap.Explanation(shap_values, data=X_shap,
 shap.plots.beeswarm(explanation, show=False)
 plt.title(f'SHAP Beeswarm Plot for {samples} instances')
 plt.tight_layout()
-# plt.savefig('beeswarm_SHAP.png')
+plt.savefig('beeswarm_SHAP.png')
 plt.show()
 
 shap.decision_plot(explainer.expected_value, shap_values,
                    feature_names=list(X_train.columns), xlim=(-0.05, 1), show=False)
 plt.title(f'SHAP Decision Plot for {samples} instances')
 plt.tight_layout()
-# plt.savefig('dec_SHAP.png')
+plt.savefig('dec_SHAP.png')
 plt.show()
 
 shap.plots.bar(explanation, show=False)
 plt.title(f'SHAP Bar Plot for {samples} instances')
 plt.tight_layout()
-# plt.savefig('bar_SHAP.png')
+plt.savefig('bar_SHAP.png')
 plt.show()
 
 # Calculate the elapsed time
