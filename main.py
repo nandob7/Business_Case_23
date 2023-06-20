@@ -22,37 +22,8 @@ warnings.filterwarnings('ignore')
 
 df = pd.read_csv('diabetes_prediction_dataset.csv')
 
-Q1 = df['bmi'].quantile(0.25)
-Q3 = df['bmi'].quantile(0.75)
-IQR = Q3 - Q1
-lower_whisker = df['bmi'].where(df['bmi'] >= Q1 - 1.5 * IQR).dropna().min()
-upper_whisker = df['bmi'].where(df['bmi'] <= Q3 + 1.5 * IQR).dropna().max()
-
-outliers = df[(df['bmi'] < lower_whisker) | (df['bmi'] > upper_whisker)]
-print(outliers['bmi'])
-
-# calculate the IQR
-Q1 = np.percentile(df['bmi'], 25)
-Q3 = np.percentile(df['bmi'], 75)
-IQR = Q3 - Q1
-
-# determine the upper and lower bounds for outliers
-lower_bound = Q1 - 1.5 * IQR
-upper_bound = Q3 + 1.5 * IQR
-
-# remove the outliers
-df = df[(df['bmi'] >= lower_bound) & (df['bmi'] <= upper_bound)]
-
-# plot the boxplot for BMI
-sns.boxplot(df['bmi'])
-plt.title('Box plot of BMI (without outliers)')
-plt.savefig('boxplot_XGBC.png')
-plt.show()
-
 df['gender'] = df['gender'].astype('category')
 df['smoking_history'] = df['smoking_history'].astype('category')
-df['hypertension'] = df['hypertension'].astype(bool)
-df['heart_disease'] = df['heart_disease'].astype(bool)
 df['diabetes'] = df['diabetes'].astype(bool)
 
 # drop duplicates
@@ -64,7 +35,8 @@ print(df.duplicated().any())
 X = df.drop('diabetes', axis=1)
 y = df.diabetes
 X = pd.get_dummies(X, columns=['smoking_history', 'gender'], drop_first=True)
-X = X.drop(['gender_Other', 'smoking_history_not current', 'smoking_history_never', 'smoking_history_ever'], axis=1)
+X = X.drop(['gender_Other', 'smoking_history_not current', 'smoking_history_never',
+            'smoking_history_ever'], axis=1)
 
 # Correlation Heatmap
 corr = pd.concat([X, y], axis=1).corr()
@@ -131,22 +103,23 @@ plt.savefig('confmatrix_XGBC.png')
 plt.show()
 
 # Compute SHAP values and plot summary
-samples = 2000
+samples = 1000
 X_shap = shap.sample(X_train, samples, random_state=random_state)
 mask = shap.maskers.Independent(X_train, max_samples=1000)
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
 
 shap_values = explainer.shap_values(X_shap)
 
-explanation = shap.Explanation(shap_values, data=X_shap,
-                               feature_names=X_train.columns)
-
+explanation = shap.Explanation(shap_values,
+                               data=X_shap, feature_names=X_train.columns)
+# Beeswarm SHAP Plot
 shap.plots.beeswarm(explanation, show=False)
 plt.title(f'SHAP Beeswarm Plot for {samples} instances')
 plt.tight_layout()
 plt.savefig('beeswarm_SHAP.png')
 plt.show()
 
+# Decision plot SHAP
 shap.decision_plot(explainer.expected_value, shap_values,
                    feature_names=list(X_train.columns), xlim=(-0.05, 1), show=False)
 plt.title(f'SHAP Decision Plot for {samples} instances')
@@ -154,10 +127,25 @@ plt.tight_layout()
 plt.savefig('dec_SHAP.png')
 plt.show()
 
+# Mean Bar Plot SHAP
 shap.plots.bar(explanation, show=False)
 plt.title(f'SHAP Bar Plot for {samples} instances')
 plt.tight_layout()
 plt.savefig('bar_SHAP.png')
+plt.show()
+
+# Single Instance Waterfall plot
+# Compute SHAP values and plot summary
+instance_no = 39
+sv = explainer.shap_values(X_test.iloc[[instance_no]])   # pass the row of interest as df
+exp = shap.Explanation(sv, explainer.expected_value,
+                       data=X_test.iloc[[instance_no]].values,
+                       feature_names=X_shap.columns)
+
+shap.plots.waterfall(exp[0], show=False)
+plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
+plt.tight_layout()
+plt.savefig('wf_SHAP.png')
 plt.show()
 
 # Calculate the elapsed time
