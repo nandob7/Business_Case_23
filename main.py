@@ -18,6 +18,7 @@ import warnings
 start_time = time.time()
 
 random_state = 42
+np.random.seed(random_state)
 warnings.filterwarnings('ignore')
 
 df = pd.read_csv('diabetes_prediction_dataset.csv')
@@ -143,7 +144,7 @@ exp = shap.Explanation(sv, explainer.expected_value,
                        feature_names=X_shap.columns)
 
 shap.plots.waterfall(exp[0], show=False)
-plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
+plt.title(f'SHAP Waterfall Plot for instance {instance_no - 1}')
 plt.tight_layout()
 plt.savefig('wf_SHAP.png')
 plt.show()
