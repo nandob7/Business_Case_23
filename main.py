@@ -52,7 +52,7 @@ plt.tight_layout()
 plt.savefig("heatmap.png")
 plt.show()
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=random_state)
 
 class_count_0, class_count_1 = y_train.value_counts()
 y_train.value_counts().plot(kind='bar', title='count (target)')
@@ -142,12 +142,26 @@ sv = explainer.shap_values(X_test.iloc[[instance_no]])   # pass the row of inter
 exp = shap.Explanation(sv, explainer.expected_value,
                        data=X_test.iloc[[instance_no]].values,
                        feature_names=X_shap.columns)
-
 shap.plots.waterfall(exp[0], show=False)
 plt.title(f'SHAP Waterfall Plot for instance {instance_no - 1}')
 plt.tight_layout()
 plt.savefig('wf_SHAP.png')
 plt.show()
+
+# Multiple Instance Waterfall
+instances = 20
+indices = np.random.choice(range(1, len(y_test) + 1), instances, replace=False)
+for i in indices:
+    sv = explainer.shap_values(X_test.iloc[[i]])  # pass the row of interest as df
+    exp = shap.Explanation(sv, explainer.expected_value,
+                           data=X_test.iloc[[i]].values,
+                           feature_names=X_shap.columns)
+    shap.plots.waterfall(exp[0], show=False)
+    plt.title(f'SHAP Waterfall Plot for instance {i - 1}')
+    plt.tight_layout()
+    plt.savefig(f'wf_SHAP_{i-1}.png')
+    plt.show()
+
 
 # Calculate the elapsed time
 elapsed_time = time.time() - start_time
