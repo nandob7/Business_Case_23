@@ -104,9 +104,11 @@ plt.savefig('confmatrix_XGBC.png')
 plt.show()
 
 # Compute SHAP values and plot summary
-samples = 1000
+samples = 998
 X_shap = shap.sample(X_test, samples, random_state=random_state)
 mask = shap.maskers.Independent(X_train, max_samples=1000)
+
+X_shap = X_shap.append([X_test.iloc[2, :], X_test.iloc[39, :]])
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
 
 shap_values = explainer.shap_values(X_shap)
@@ -140,14 +142,23 @@ plt.show()
 # Compute SHAP values and plot summary
 instance_no = 40
 
-shap.plots.waterfall(explanation[instance_no - 1], show=False)
+shap.plots.waterfall(explanation[-1], show=False)
+plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
+plt.tight_layout()
+plt.savefig(f'wf_SHAP_{instance_no}.png')
+plt.show()
+
+# Compute SHAP values and plot summary
+instance_no = 3
+
+shap.plots.waterfall(explanation[-2], show=False)
 plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
 plt.tight_layout()
 plt.savefig(f'wf_SHAP_{instance_no}.png')
 plt.show()
 
 # Multiple Instance Waterfall
-instances = 19
+instances = 18
 instance_nos = np.random.choice(range(1, samples + 1), instances, replace=False)
 for i in instance_nos:
     shap.plots.waterfall(explanation[i - 1], show=False)
