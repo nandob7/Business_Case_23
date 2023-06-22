@@ -90,8 +90,6 @@ plt.show()
 
 model = XGBClassifier(n_estimators=100, random_state=random_state)
 model.fit(X_train, y_train)
-cv = 5
-weights = [2, 3, 25, 50, 100, 500]
 
 y_train_repo = model.predict(X_train)
 y_test_repo = model.predict(X_test)
@@ -104,11 +102,14 @@ plt.savefig('confmatrix_XGBC.png')
 plt.show()
 
 # Compute SHAP values and plot summary
-samples = 998
+instance_ids = [2, 39]
+samples = 1000 - len(instance_ids)
+
 X_shap = shap.sample(X_test, samples, random_state=random_state)
 mask = shap.maskers.Independent(X_train, max_samples=1000)
 
-X_shap = X_shap.append([X_test.iloc[2, :], X_test.iloc[39, :]])
+for i in instance_ids:
+    X_shap = X_shap.append(X_test.iloc[i, :])
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
 
 shap_values = explainer.shap_values(X_shap)
@@ -118,7 +119,7 @@ explanation = shap.Explanation(shap_values, base_values=np.repeat(explainer.expe
 
 # Beeswarm SHAP Plot
 shap.plots.beeswarm(explanation, show=False)
-plt.title(f'SHAP Beeswarm Plot for {samples} instances')
+plt.title(f'SHAP Beeswarm Plot for {samples + len(instance_ids)} instances')
 plt.tight_layout()
 plt.savefig('beeswarm_SHAP.png')
 plt.show()
@@ -126,40 +127,32 @@ plt.show()
 # Decision plot SHAP
 shap.decision_plot(explainer.expected_value, shap_values,
                    feature_names=list(X_train.columns), xlim=(-0.05, 1), show=False)
-plt.title(f'SHAP Decision Plot for {samples} instances')
+plt.title(f'SHAP Decision Plot for {samples + len(instance_ids)} instances')
 plt.tight_layout()
 plt.savefig('dec_SHAP.png')
 plt.show()
 
 # Mean Bar Plot SHAP
 shap.plots.bar(explanation, show=False)
-plt.title(f'SHAP Bar Plot for {samples} instances')
+plt.title(f'SHAP Bar Plot for {samples + len(instance_ids)} instances')
 plt.tight_layout()
 plt.savefig('bar_SHAP.png')
 plt.show()
 
 # Single Instance Waterfall plot
-# Compute SHAP values and plot summary
-instance_no = 40
-
-shap.plots.waterfall(explanation[-1], show=False)
-plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
-plt.tight_layout()
-plt.savefig(f'wf_SHAP_{instance_no}.png')
-plt.show()
-
-# Compute SHAP values and plot summary
-instance_no = 3
-
-shap.plots.waterfall(explanation[-2], show=False)
-plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
-plt.tight_layout()
-plt.savefig(f'wf_SHAP_{instance_no}.png')
-plt.show()
+it = 0
+if len(instance_ids) > 0:
+    for i in instance_ids:
+        shap.plots.waterfall(explanation[-len(instance_ids) + it], show=False)
+        plt.title(f'SHAP Waterfall Plot for instance {i + 1}')
+        plt.tight_layout()
+        plt.savefig(f'wf_SHAP_{i + 1}.png')
+        plt.show()
+        it += 1
 
 # Multiple Instance Waterfall
 instances = 18
-instance_nos = np.random.choice(range(1, samples + 1), instances, replace=False)
+instance_nos = np.random.choice(range(1, samples + len(instance_ids) + 1), instances, replace=False)
 for i in instance_nos:
     shap.plots.waterfall(explanation[i - 1], show=False)
     plt.title(f'SHAP Waterfall Plot for instance {i}')
