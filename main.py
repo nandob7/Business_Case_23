@@ -105,14 +105,15 @@ plt.show()
 
 # Compute SHAP values and plot summary
 samples = 1000
-X_shap = shap.sample(X_train, samples, random_state=random_state)
+X_shap = shap.sample(X_test, samples, random_state=random_state)
 mask = shap.maskers.Independent(X_train, max_samples=1000)
 explainer = shap.KernelExplainer(model.predict, X_shap, masker=mask)
 
 shap_values = explainer.shap_values(X_shap)
 
-explanation = shap.Explanation(shap_values,
-                               data=X_shap, feature_names=X_train.columns)
+explanation = shap.Explanation(shap_values, base_values=np.repeat(explainer.expected_value,len(shap_values)),
+                               data=X_shap, feature_names=X_test.columns)
+
 # Beeswarm SHAP Plot
 shap.plots.beeswarm(explanation, show=False)
 plt.title(f'SHAP Beeswarm Plot for {samples} instances')
@@ -137,29 +138,22 @@ plt.show()
 
 # Single Instance Waterfall plot
 # Compute SHAP values and plot summary
-instance_no = 39
-sv = explainer.shap_values(X_test.iloc[[instance_no]])   # pass the row of interest as df
-exp = shap.Explanation(sv, explainer.expected_value,
-                       data=X_test.iloc[[instance_no]].values,
-                       feature_names=X_shap.columns)
-shap.plots.waterfall(exp[0], show=False)
-plt.title(f'SHAP Waterfall Plot for instance {instance_no - 1}')
+instance_no = 40
+
+shap.plots.waterfall(explanation[instance_no - 1], show=False)
+plt.title(f'SHAP Waterfall Plot for instance {instance_no}')
 plt.tight_layout()
-plt.savefig('wf_SHAP.png')
+plt.savefig(f'wf_SHAP_{instance_no}.png')
 plt.show()
 
 # Multiple Instance Waterfall
-instances = 20
-indices = np.random.choice(range(1, len(y_test) + 1), instances, replace=False)
-for i in indices:
-    sv = explainer.shap_values(X_test.iloc[[i]])  # pass the row of interest as df
-    exp = shap.Explanation(sv, explainer.expected_value,
-                           data=X_test.iloc[[i]].values,
-                           feature_names=X_shap.columns)
-    shap.plots.waterfall(exp[0], show=False)
-    plt.title(f'SHAP Waterfall Plot for instance {i - 1}')
+instances = 19
+instance_nos = np.random.choice(range(1, samples + 1), instances, replace=False)
+for i in instance_nos:
+    shap.plots.waterfall(explanation[i - 1], show=False)
+    plt.title(f'SHAP Waterfall Plot for instance {i}')
     plt.tight_layout()
-    plt.savefig(f'wf_SHAP_{i-1}.png')
+    plt.savefig(f'wf_SHAP_{i}.png')
     plt.show()
 
 
