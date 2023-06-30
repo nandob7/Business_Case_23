@@ -11,6 +11,7 @@ import pandas as pd
 import shap
 import xgboost as xgb
 
+# Initiate random state for replicability
 random_state = 42
 
 # Load boston housing dataset
@@ -32,6 +33,7 @@ for model_name, model in models:
     # Train and evaluate each model
     model.fit(X_train, y_train.values.ravel())
     y_pred = model.predict(X_test)
+
     mse = mean_squared_error(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
